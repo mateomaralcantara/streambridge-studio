@@ -63,12 +63,67 @@ function publicIceServers() {
   return servers;
 }
 
+async function cloudflareTurnIceServers() {
+  const keyId = process.env.CF_TURN_KEY_ID?.trim();
+  const apiToken = process.env.CF_TURN_API_TOKEN?.trim();
+  if (!keyId || !apiToken) return [];
+
+  const ttl = Math.max(600, Math.min(Number(process.env.CF_TURN_TTL_SECONDS || 3600), 86400));
+  const response = await fetch(
+    `https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(keyId)}/credentials/generate-ice-servers`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ ttl })
+    }
+  );
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`Cloudflare TURN HTTP ${response.status}: ${detail.slice(0, 300)}`);
+  }
+
+  const data = await response.json();
+  return Array.isArray(data?.iceServers) ? data.iceServers : [];
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'StreamBridge Studio', version: '1.0.1', instanceId: INSTANCE_ID, now: new Date().toISOString() });
 });
 
-app.get('/api/config', (req, res) => {
-  res.json({ iceServers: publicIceServers(), signalWsUrl: SIGNAL_WS_URL });
+app.get('/api/config', async (req, res) => {
+  const iceServers = publicIceServers();
+
+  try {
+    const cloudflareTurn = await cloudflareTurnIceServers();
+    if (cloudflareTurn.length) {
+      const hasCloudflareStun = iceServers.some((server) =>
+        JSON.stringify(server.urls || '').includes('stun.cloudflare.com')
+      );
+      for (const server of cloudflareTurn) {
+        if (
+          hasCloudflareStun &&
+          !server.username &&
+          JSON.stringify(server.urls || '').includes('stun.cloudflare.com')
+        ) continue;
+        iceServers.push(server);
+      }
+    }
+  } catch (error) {
+    console.error('[turn] cloudflare credentials failed:', error?.message || error);
+  }
+
+  res.json({
+    iceServers,
+    signalWsUrl: SIGNAL_WS_URL,
+    turnConfigured: iceServers.some((server) =>
+      JSON.stringify(server.urls || '').includes('turn:')
+      || JSON.stringify(server.urls || '').includes('turns:')
+    )
+  });
 });
 
 app.get('/api/info', (req, res) => {

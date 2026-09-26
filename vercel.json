@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
+    "frontend": {
+      "root": "public/"
+    },
     "streambridge-studio": {
       "root": ".",
       "framework": "express",
@@ -18,6 +21,12 @@
       "source": "/ws",
       "destination": {
         "service": "streambridge-studio"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
       }
     }
   ]

@@ -67,3 +67,14 @@ Incluye `Dockerfile` y `render.yaml`. Para producción, usa Vercel para el front
 - STUN sin TURN puede fallar en NAT corporativo/móvil restrictivo.
 
 Consulta `docs/ARQUITECTURA.md` y `docs/ROADMAP.md`.
+
+
+## TURN de producción con Cloudflare Realtime
+Si WebRTC llega a `failed` aunque la señalización funcione, configura TURN. StreamBridge soporta credenciales efímeras de Cloudflare Realtime TURN desde `/api/config`.
+
+Variables del servidor:
+- `CF_TURN_KEY_ID`
+- `CF_TURN_API_TOKEN`
+- `CF_TURN_TTL_SECONDS=3600`
+
+Las credenciales de largo plazo permanecen en el servidor; el navegador recibe únicamente credenciales TURN temporales.

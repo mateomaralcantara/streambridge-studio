@@ -22,6 +22,7 @@ let pc;
 let localStream;
 let facingMode = 'environment';
 let rtcConfig = { iceServers: [] };
+let signalWsUrl = '';
 let pendingIce = [];
 let lastBytes = 0;
 let lastStatsAt = 0;
@@ -153,7 +154,7 @@ function sendSignal(payload) {
 
 async function connectSignal() {
   return new Promise((resolve, reject) => {
-    socket = new WebSocket(wsUrl());
+    socket = new WebSocket(wsUrl(signalWsUrl));
     socket.onopen = () => {
       reconnectAttempts = 0;
       socket.send(JSON.stringify({ type: 'join', room, token, role: 'sender' }));
@@ -181,7 +182,9 @@ async function start() {
   stoppedByUser = false;
   try {
     setStatus(statusEl, 'Solicitando cámara…');
-    rtcConfig = await loadRtcConfig();
+    const config = await loadRtcConfig();
+    rtcConfig = { iceServers: config.iceServers || [] };
+    signalWsUrl = config.signalWsUrl || '';
     await acquireMedia();
     await connectSignal();
     switchButton.disabled = false;

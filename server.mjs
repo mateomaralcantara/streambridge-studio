@@ -9,6 +9,7 @@ const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 12 * 60 * 60 * 1000);
 const SIGNAL_WS_URL = process.env.SIGNAL_WS_URL?.trim() || '';
+const INSTANCE_ID = crypto.randomUUID().slice(0, 8);
 
 const app = express();
 app.disable('x-powered-by');
@@ -63,7 +64,7 @@ function publicIceServers() {
 }
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, service: 'StreamBridge Studio', version: '1.0.0', now: new Date().toISOString() });
+  res.json({ ok: true, service: 'StreamBridge Studio', version: '1.0.1', instanceId: INSTANCE_ID, now: new Date().toISOString() });
 });
 
 app.get('/api/config', (req, res) => {
@@ -128,6 +129,7 @@ function detach(socket, notify = true) {
 }
 
 wss.on('connection', (socket) => {
+  console.log(`[signal] ws-open instance=${INSTANCE_ID}`);
   socket.isAlive = true;
   socket.meta = {};
   socket.on('pong', () => { socket.isAlive = true; });
@@ -156,9 +158,11 @@ wss.on('connection', (socket) => {
       }
       session[role] = socket;
       socket.meta = { room, role };
+      console.log(`[signal] join instance=${INSTANCE_ID} room=${room} role=${role} sender=${Boolean(session.sender)} receiver=${Boolean(session.receiver)}`);
       send(socket, { type: 'joined', room, role });
 
       if (session.sender && session.receiver) {
+        console.log(`[signal] peer-ready instance=${INSTANCE_ID} room=${room}`);
         send(session.sender, { type: 'peer-ready', peerRole: 'receiver' });
         send(session.receiver, { type: 'peer-ready', peerRole: 'sender' });
       }
@@ -172,7 +176,11 @@ wss.on('connection', (socket) => {
 
     if (['offer', 'answer', 'ice', 'renegotiate'].includes(message.type)) {
       const peer = peerOf(session, role);
-      if (!peer) return send(socket, { type: 'peer-missing' });
+      if (!peer) {
+        console.log(`[signal] peer-missing instance=${INSTANCE_ID} room=${room} role=${role} type=${message.type}`);
+        return send(socket, { type: 'peer-missing' });
+      }
+      console.log(`[signal] relay instance=${INSTANCE_ID} room=${room} from=${role} type=${message.type}`);
       send(peer, { ...message, from: role });
       return;
     }
@@ -180,7 +188,11 @@ wss.on('connection', (socket) => {
     if (message.type === 'ping') send(socket, { type: 'pong', at: Date.now() });
   });
 
-  socket.on('close', () => detach(socket));
+  socket.on('close', () => {
+    const meta = socket.meta || {};
+    console.log(`[signal] close instance=${INSTANCE_ID} room=${meta.room || '-'} role=${meta.role || '-'}`);
+    detach(socket);
+  });
   socket.on('error', () => detach(socket));
 });
 

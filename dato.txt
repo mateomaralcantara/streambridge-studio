@@ -1,0 +1,15 @@
+
+Paso 1 — Levanta StreamBridge en la PC
+Set-Location "C:\Users\martin\Desktop\VSC\BestS\streambridge-studio-mvp"
+
+npm start
+
+
+Paso 2 — Levanta Cloudflare
+$Cloudflared = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
+
+& $Cloudflared tunnel `
+    --protocol http2 `
+    --url http://127.0.0.1:3000
+
+    https://tomato-ordinary-velocity-processed.trycloudflare.com 

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: streambridge-studio
+    runtime: docker
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production

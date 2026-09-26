@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#050812" />
+  <title>StreamBridge Studio</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <main class="shell">
+    <div class="brand"><div class="logo">SB</div><div><b>StreamBridge Studio</b><div class="note" style="margin:2px 0 0">Mobile Camera → WebRTC → OBS</div></div></div>
+    <h1>Tu teléfono se convierte en cámara para OBS.</h1>
+    <p class="lead">Crea una sala, abre el enlace en iPhone o Android y pega la URL receptora como <b>Browser Source</b> en OBS. Sin driver virtual en esta primera versión.</p>
+
+    <div class="actions"><button id="createSession">Crear nueva sesión</button><span class="status" id="serverStatus"><span class="dot"></span><span data-label>Comprobando servidor…</span></span></div>
+    <div id="httpsWarning" class="warning" hidden>Estás entrando por HTTP. En la PC funciona, pero la cámara del teléfono requiere HTTPS. Usa un despliegue HTTPS o el túnel incluido en el proyecto.</div>
+
+    <section class="grid" id="sessionPanel" hidden>
+      <article class="card">
+        <h2>1. Teléfono</h2>
+        <p class="note">Escanea este QR con iPhone/Android y pulsa <b>Iniciar cámara</b>.</p>
+        <img class="qr" id="senderQr" alt="QR para conectar el teléfono" />
+        <div class="field"><label>URL del teléfono</label><div class="urlbox"><input id="senderUrl" readonly /><button class="secondary" data-copy="senderUrl">Copiar</button></div></div>
+        <a class="button secondary" id="openSender" target="_blank" rel="noreferrer">Abrir emisor</a>
+      </article>
+
+      <article class="card">
+        <h2>2. OBS Studio</h2>
+        <p class="note">Añade una fuente <b>Browser</b>, usa 1920×1080 y pega esta URL.</p>
+        <div class="field"><label>URL para OBS</label><div class="urlbox"><input id="receiverUrl" readonly /><button class="secondary" data-copy="receiverUrl">Copiar</button></div></div>
+        <div class="actions"><a class="button secondary" id="openReceiver" target="_blank" rel="noreferrer">Vista previa</a></div>
+        <div class="field"><label>Sala</label><input id="roomCode" class="mono" readonly /></div>
+        <p class="note">Una sesión conecta 1 teléfono con 1 Browser Source. Para varias cámaras, crea una sesión por teléfono.</p>
+      </article>
+
+      <article class="card full">
+        <h2>Flujo completo</h2>
+        <div class="steps">
+          <div class="step"><b>Crea la sesión</b><div class="note">StreamBridge genera sala + token privado.</div></div>
+          <div class="step"><b>Conecta el móvil</b><div class="note">El navegador captura cámara/micrófono con permiso del usuario.</div></div>
+          <div class="step"><b>WebRTC negocia la conexión</b><div class="note">El servidor solo señaliza; el video intenta viajar punto a punto.</div></div>
+          <div class="step"><b>OBS recibe</b><div class="note">La Browser Source abre el receptor y muestra el MediaStream.</div></div>
+        </div>
+      </article>
+    </section>
+    <div class="footer">StreamBridge Studio MVP 1.0 · pensado para evolucionar a multicámara, invitados remotos, grabación ISO y control total de OBS.</div>
+  </main>
+  <script type="module" src="/js/home.js"></script>
+</body>
+</html>

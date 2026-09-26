@@ -8,7 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 12 * 60 * 60 * 1000);
-const SIGNAL_WS_URL = process.env.SIGNAL_WS_URL?.trim() || '';
+const SIGNAL_WS_URL = process.env.SIGNAL_WS_URL?.trim() || (process.env.VERCEL ? 'wss://streambridge-studio.onrender.com/ws' : '');
 const INSTANCE_ID = crypto.randomUUID().slice(0, 8);
 
 const app = express();
@@ -89,14 +89,14 @@ app.post('/api/session', (req, res) => {
   res.status(201).json({ room, token, expiresInSeconds: Math.floor(SESSION_TTL_MS / 1000) });
 });
 
-app.post('/api/diagnostics/signaling', async (req, res) => {
+app.get('/api/diagnostics/signaling', async (req, res) => {
   const room = makeRoom();
   const token = makeToken();
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').trim();
   if (!host) return res.status(500).json({ ok: false, error: 'Host no disponible.' });
 
   const wsProtocol = String(req.headers['x-forwarded-proto'] || 'https') === 'https' ? 'wss' : 'ws';
-  const target = `${wsProtocol}://${host}/ws`;
+  const target = SIGNAL_WS_URL || `${wsProtocol}://${host}/ws`;
   const result = {
     ok: false,
     room,

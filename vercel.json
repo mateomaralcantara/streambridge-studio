@@ -9,7 +9,13 @@
   },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "streambridge-studio"
+      }
+    },
+    {
+      "source": "/ws",
       "destination": {
         "service": "streambridge-studio"
       }

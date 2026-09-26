@@ -203,7 +203,7 @@ const cleanup = setInterval(() => {
 }, 15 * 60_000);
 cleanup.unref();
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   server.listen(PORT, HOST, () => {
     console.log(`\nStreamBridge Studio listo en http://localhost:${PORT}`);
     console.log('Para iPhone/Android usa una URL HTTPS (deploy o túnel seguro).\n');
@@ -213,3 +213,4 @@ if (process.env.NODE_ENV !== 'test') {
 export { app, server, sessions, ensureSession };
 
 export default server;
+

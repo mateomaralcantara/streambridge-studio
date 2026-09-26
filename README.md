@@ -57,7 +57,7 @@ npm run check
 ```
 
 ## Despliegue
-Incluye `Dockerfile` y `render.yaml`. Cualquier plataforma que mantenga conexiones WebSocket y entregue HTTPS sirve. No uses una plataforma serverless que cierre conexiones WebSocket persistentes para este servidor de señalización.
+Incluye `Dockerfile` y `render.yaml`. Para producción, usa Vercel para el frontend/API y un proceso Node persistente para la señalización WebSocket (por ejemplo Render/Railway/VPS). Define en Vercel `SIGNAL_WS_URL=wss://TU-BACKEND/ws`; sender y receiver usarán automáticamente ese endpoint. Si `SIGNAL_WS_URL` está vacío, StreamBridge conserva el comportamiento local y usa `/ws` en el mismo origen.
 
 ## Limitaciones deliberadas de V1
 - Una sala = un teléfono + un receptor.

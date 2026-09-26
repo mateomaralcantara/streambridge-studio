@@ -10,6 +10,7 @@ if (obsMode) document.body.classList.add('obs');
 let socket;
 let pc;
 let rtcConfig = { iceServers: [] };
+let signalWsUrl = '';
 let pendingIce = [];
 let reconnectAttempts = 0;
 let closing = false;
@@ -67,8 +68,10 @@ async function onSignal(message) {
 }
 
 async function connect() {
-  rtcConfig = await loadRtcConfig();
-  socket = new WebSocket(wsUrl());
+  const config = await loadRtcConfig();
+  rtcConfig = { iceServers: config.iceServers || [] };
+  signalWsUrl = config.signalWsUrl || '';
+  socket = new WebSocket(wsUrl(signalWsUrl));
   socket.onopen = () => {
     reconnectAttempts = 0;
     socket.send(JSON.stringify({ type: 'join', room, token, role: 'receiver' }));

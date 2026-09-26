@@ -8,6 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 12 * 60 * 60 * 1000);
+const SIGNAL_WS_URL = process.env.SIGNAL_WS_URL?.trim() || '';
 
 const app = express();
 app.disable('x-powered-by');
@@ -66,7 +67,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.get('/api/config', (req, res) => {
-  res.json({ iceServers: publicIceServers() });
+  res.json({ iceServers: publicIceServers(), signalWsUrl: SIGNAL_WS_URL });
 });
 
 app.get('/api/info', (req, res) => {

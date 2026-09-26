@@ -2,6 +2,7 @@ services:
   - type: web
     name: streambridge-studio
     runtime: docker
+    plan: free
     autoDeploy: true
     healthCheckPath: /api/health
     envVars:

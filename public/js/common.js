@@ -2,7 +2,19 @@ export function qs(name) {
   return new URLSearchParams(location.search).get(name) || '';
 }
 
-export function wsUrl() {
+export function wsUrl(explicitUrl = '') {
+  const configured = String(explicitUrl || '').trim();
+  if (configured) {
+    let url = configured
+      .replace(/^https:/i, 'wss:')
+      .replace(/^http:/i, 'ws:');
+
+    if (!/\/ws(?:[?#]|$)/i.test(url)) {
+      url = `${url.replace(/\/+$/, '')}/ws`;
+    }
+    return url;
+  }
+
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${location.host}/ws`;
 }

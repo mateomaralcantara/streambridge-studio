@@ -18,6 +18,21 @@ let closing = false;
 function setOverlay(text) { overlay.textContent = text; }
 function send(payload) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload)); }
 
+async function startPlayback() {
+  try {
+    await video.play();
+  } catch (error) {
+    // OBS/CEF puede aplicar políticas de autoplay cuando el stream incluye audio.
+    // En modo OBS priorizamos que el video aparezca; si hace falta, reintentamos silenciado.
+    if (obsMode) {
+      video.muted = true;
+      try { await video.play(); } catch {}
+    } else {
+      console.warn('No se pudo iniciar reproducción automática:', error);
+    }
+  }
+}
+
 async function ensurePeer() {
   if (pc && !['closed', 'failed'].includes(pc.connectionState)) return pc;
   pendingIce = [];
@@ -31,7 +46,7 @@ async function ensurePeer() {
       synthetic.addTrack(event.track);
       video.srcObject = synthetic;
     }
-    video.play().catch(() => {});
+    startPlayback().catch(() => {});
   };
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') setOverlay('Conectado');
@@ -57,6 +72,14 @@ async function onSignal(message) {
     else pendingIce.push(message.candidate);
     return;
   }
+  if (message.type === 'replaced') {
+    closing = true;
+    setOverlay('Este receptor fue reemplazado por otro. Cierra esta pestaña.');
+    pc?.close();
+    pc = null;
+    try { socket?.close(); } catch {}
+    return;
+  }
   if (message.type === 'peer-left') {
     setOverlay('Teléfono desconectado. Esperando…');
     video.srcObject = null;
@@ -78,6 +101,7 @@ async function connect() {
     setOverlay('Esperando teléfono…');
   };
   socket.onmessage = (event) => { try { onSignal(JSON.parse(event.data)).catch(console.error); } catch {} };
+  socket.onerror = () => setOverlay('Error de conexión con el servidor.');
   socket.onclose = async () => {
     if (closing) return;
     reconnectAttempts += 1;

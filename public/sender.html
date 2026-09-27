@@ -12,7 +12,7 @@
     <div class="brand"><div class="logo">SB</div><div><b>Cámara móvil</b><div class="note" id="roomLabel" style="margin:2px 0 0"></div></div></div>
     <section class="grid">
       <article class="card full">
-        <div class="video-wrap">
+        <div class="video-wrap" id="videoWrap" style="touch-action:none">
           <video id="preview" autoplay muted playsinline></video>
           <div class="hud"><span id="cameraBadge">Cámara detenida</span><span id="liveBadge">OFF AIR</span></div>
         </div>
@@ -23,6 +23,18 @@
         <h2>Controles</h2>
         <div class="field"><label>Calidad</label><select id="quality"><option value="720">720p · eficiente</option><option value="1080" selected>1080p · recomendado</option><option value="2160">4K · experimental</option></select></div>
         <div class="field"><label>Audio</label><select id="audioMode"><option value="on" selected>Cámara + micrófono</option><option value="off">Solo video</option></select></div>
+
+        <div class="field" id="zoomControl" hidden>
+          <label>Zoom de cámara <span id="zoomValue" style="float:right">1.0×</span></label>
+          <input id="zoom" type="range" min="1" max="1" step="0.1" value="1" disabled />
+          <div class="actions" style="margin-top:10px">
+            <button id="zoomOut" type="button" class="secondary" disabled>−</button>
+            <button id="zoomReset" type="button" class="secondary" disabled>1×</button>
+            <button id="zoomIn" type="button" class="secondary" disabled>+</button>
+          </div>
+          <p class="note">También puedes pellizcar la imagen con dos dedos para acercar o alejar, si el navegador permite controlar el zoom físico de la cámara.</p>
+        </div>
+
         <div class="actions"><button id="start">Iniciar cámara</button><button id="switch" class="secondary" disabled>Cambiar cámara</button><button id="stop" class="danger" disabled>Detener</button></div>
       </article>
 
@@ -33,6 +45,6 @@
       </article>
     </section>
   </main>
-  <script type="module" src="/js/sender.js?v=20260927-obsfix1"></script>
+  <script type="module" src="/js/sender.js?v=20260927-camera-controls1"></script>
 </body>
 </html>

@@ -16,6 +16,13 @@ const liveBadge = document.querySelector('#liveBadge');
 const bitrateEl = document.querySelector('#bitrate');
 const fpsEl = document.querySelector('#fps');
 const resolutionEl = document.querySelector('#resolution');
+const videoWrap = document.querySelector('#videoWrap');
+const zoomControl = document.querySelector('#zoomControl');
+const zoomSlider = document.querySelector('#zoom');
+const zoomValueEl = document.querySelector('#zoomValue');
+const zoomOutButton = document.querySelector('#zoomOut');
+const zoomResetButton = document.querySelector('#zoomReset');
+const zoomInButton = document.querySelector('#zoomIn');
 
 let socket;
 let pc;
@@ -29,6 +36,93 @@ let lastStatsAt = 0;
 let statsTimer;
 let reconnectAttempts = 0;
 let stoppedByUser = false;
+let zoomCapability = null;
+let currentZoom = 1;
+let pinchStartDistance = 0;
+let pinchStartZoom = 1;
+let zoomRaf = 0;
+
+
+function activeVideoTrack() {
+  return localStream?.getVideoTracks?.()[0] || null;
+}
+
+function clampZoom(value) {
+  if (!zoomCapability) return 1;
+  return Math.min(zoomCapability.max, Math.max(zoomCapability.min, value));
+}
+
+function zoomStep() {
+  return Number(zoomCapability?.step || 0.1);
+}
+
+function renderZoomValue(value = currentZoom) {
+  zoomValueEl.textContent = `${Number(value).toFixed(value < 2 ? 1 : 2)}×`;
+}
+
+async function applyZoom(value) {
+  const track = activeVideoTrack();
+  if (!track || !zoomCapability) return;
+  const next = clampZoom(Number(value));
+  try {
+    await track.applyConstraints({ advanced: [{ zoom: next }] });
+    currentZoom = next;
+    zoomSlider.value = String(next);
+    renderZoomValue(next);
+  } catch (error) {
+    detail.textContent = 'Este navegador no permitió cambiar el zoom de la cámara.';
+    console.warn('Zoom no disponible:', error);
+  }
+}
+
+function configureCameraControls() {
+  const track = activeVideoTrack();
+  const capabilities = track?.getCapabilities?.() || {};
+  const zoom = capabilities.zoom;
+
+  if (
+    zoom &&
+    Number.isFinite(Number(zoom.min)) &&
+    Number.isFinite(Number(zoom.max)) &&
+    Number(zoom.max) > Number(zoom.min)
+  ) {
+    zoomCapability = {
+      min: Number(zoom.min),
+      max: Number(zoom.max),
+      step: Number(zoom.step || 0.1)
+    };
+
+    const settingsZoom = Number(track.getSettings?.().zoom);
+    currentZoom = clampZoom(Number.isFinite(settingsZoom) ? settingsZoom : zoomCapability.min);
+
+    zoomSlider.min = String(zoomCapability.min);
+    zoomSlider.max = String(zoomCapability.max);
+    zoomSlider.step = String(zoomCapability.step);
+    zoomSlider.value = String(currentZoom);
+
+    zoomControl.hidden = false;
+    zoomSlider.disabled = false;
+    zoomOutButton.disabled = false;
+    zoomResetButton.disabled = false;
+    zoomInButton.disabled = false;
+    renderZoomValue();
+  } else {
+    zoomCapability = null;
+    currentZoom = 1;
+    zoomControl.hidden = true;
+    zoomSlider.disabled = true;
+    zoomOutButton.disabled = true;
+    zoomResetButton.disabled = true;
+    zoomInButton.disabled = true;
+  }
+}
+
+function touchDistance(touches) {
+  if (touches.length < 2) return 0;
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
 
 roomLabel.textContent = room ? `Sala ${room}` : 'Enlace inválido';
 
@@ -71,6 +165,7 @@ async function acquireMedia() {
   const settings = videoTrack?.getSettings?.() || {};
   cameraBadge.textContent = facingMode === 'environment' ? 'Cámara trasera' : 'Cámara frontal';
   resolutionEl.textContent = settings.width && settings.height ? `${settings.width}×${settings.height}` : 'Activa';
+  configureCameraControls();
 
   if (pc) {
     const newVideo = next.getVideoTracks()[0] || null;
@@ -249,6 +344,9 @@ function stop() {
   stopButton.disabled = true;
   qualitySelect.disabled = false;
   audioMode.disabled = false;
+  zoomControl.hidden = true;
+  zoomCapability = null;
+  currentZoom = 1;
 }
 
 function startStats() {
@@ -273,6 +371,31 @@ function startStats() {
     });
   }, 1000);
 }
+
+zoomSlider.addEventListener('input', () => applyZoom(zoomSlider.value));
+zoomOutButton.addEventListener('click', () => applyZoom(currentZoom - zoomStep()));
+zoomResetButton.addEventListener('click', () => applyZoom(1));
+zoomInButton.addEventListener('click', () => applyZoom(currentZoom + zoomStep()));
+
+videoWrap?.addEventListener('touchstart', (event) => {
+  if (!zoomCapability || event.touches.length !== 2) return;
+  pinchStartDistance = touchDistance(event.touches);
+  pinchStartZoom = currentZoom;
+}, { passive: true });
+
+videoWrap?.addEventListener('touchmove', (event) => {
+  if (!zoomCapability || event.touches.length !== 2 || !pinchStartDistance) return;
+  event.preventDefault();
+  const distance = touchDistance(event.touches);
+  if (!distance) return;
+  const target = clampZoom(pinchStartZoom * (distance / pinchStartDistance));
+  cancelAnimationFrame(zoomRaf);
+  zoomRaf = requestAnimationFrame(() => applyZoom(target));
+}, { passive: false });
+
+videoWrap?.addEventListener('touchend', (event) => {
+  if (event.touches.length < 2) pinchStartDistance = 0;
+}, { passive: true });
 
 startButton.addEventListener('click', start);
 switchButton.addEventListener('click', switchCamera);

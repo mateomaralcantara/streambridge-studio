@@ -137,6 +137,13 @@ async function onSignal(message) {
     else pendingIce.push(message.candidate);
     return;
   }
+  if (message.type === 'replaced') {
+    stoppedByUser = true;
+    setStatus(statusEl, 'Esta cámara fue reemplazada por otra conexión', 'bad');
+    detail.textContent = message.message || 'Otra cámara tomó esta sesión.';
+    try { socket?.close(); } catch {}
+    return;
+  }
   if (message.type === 'peer-left') {
     setStatus(statusEl, 'OBS se desconectó; esperando…');
     liveBadge.textContent = 'WAITING';
